@@ -3,33 +3,40 @@ $.noConflict();
 jQuery(document).ready(function($){
 
   // Grab elements, create settings, etc.
-  var canvas = $("#canvas")[0],
-    context = canvas.getContext("2d"),
-    video = $("#video")[0],
-    videoObj = { "video": true },
+  var videoObj = { "video": true },
     errBack = function(error) {
       console.log("Video capture error: ", error.code);
     };
 
-  function createObjectURL ( file ) {
-    if ( window.webkitURL ) {
-        return window.webkitURL.createObjectURL( file );
-    } else if ( window.URL && window.URL.createObjectURL ) {
-        return window.URL.createObjectURL( file );
+  var getUserMedia = function(t, onsuccess, onerror) {
+    if (navigator.getUserMedia) {
+      return navigator.getUserMedia(t, onsuccess, onerror);
+    } else if (navigator.webkitGetUserMedia) {
+      return navigator.webkitGetUserMedia(t, onsuccess, onerror);
+    } else if (navigator.mozGetUserMedia) {
+      return navigator.mozGetUserMedia(t, onsuccess, onerror);
+    } else if (navigator.msGetUserMedia) {
+      return navigator.msGetUserMedia(t, onsuccess, onerror);
     } else {
-        return file;
+      onerror(new Error("No getUserMedia implementation found."));
     }
+  };
+
+  var URL = window.URL || window.webkitURL;
+  var createObjectURL = URL.createObjectURL || webkitURL.createObjectURL;
+  if (!createObjectURL) {
+    throw new Error("URL.createObjectURL not found.");
   }
   // Put video listeners into place
-  if (Modernizr.getusermedia){
-    var gUM = Modernizr.prefixed('getUserMedia', navigator);
-    gUM(videoObj, function(stream){
-      video.src = createObjectURL(stream);
-      video.play();
-    }, errBack);
-  }
-
-  $("#snap").on("click", function() {
-    context.drawImage(video, 0, 0, 640, 480);
-  });
+  getUserMedia({'video': true},
+    function(stream) {
+      var url = createObjectURL(stream);
+      $(".video").each(function(){
+        $(this).attr('src',url);
+      });
+    },
+    function(error) {
+      alert("Couldn't access webcam.");
+    }
+  );
 });
